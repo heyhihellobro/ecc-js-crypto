@@ -32,23 +32,23 @@
 
             // which curve are we using?
             var A_rand = parseInt(document.ECC.A_rand.value);
-            accumulated_output_info += "A's secret number = " + A_rand + "\n";
+            accumulated_output_info += "Секретное число объекта A = " + A_rand + "\n";
             var A_msg = cur_G.smul(A_rand);
-            accumulated_output_info += "A sends " + A_msg.format() + "\n\n";
+            accumulated_output_info += "A отправляет " + A_msg.format() + "\n\n";
 
             var B_rand = parseInt(document.ECC.B_rand.value);
-            accumulated_output_info += "B's secret number = " + B_rand + "\n";
+            accumulated_output_info += "Секретное число объекта B = " + B_rand + "\n";
             var B_msg = cur_G.smul(B_rand);
-            accumulated_output_info += "B sends " + B_msg.format() + "\n\n";
+            accumulated_output_info += "B отправляет " + B_msg.format() + "\n\n";
 
             // do they get the same result?
-            accumulated_output_info += "A now calculates " + A_rand + "*" + B_msg.format() + "\n";
+            accumulated_output_info += "A считает " + A_rand + "*" + B_msg.format() + "\n";
             var A_res = B_msg.smul(A_rand);
-            accumulated_output_info += "A's result = " + A_res.format() + "\n\n";
+            accumulated_output_info += "Результат объекта A = " + A_res.format() + "\n\n";
 
-            accumulated_output_info += "B now calculates " + B_rand + "*" + A_msg.format() + "\n";
+            accumulated_output_info += "B считает " + B_rand + "*" + A_msg.format() + "\n";
             var B_res = A_msg.smul(B_rand);
-            accumulated_output_info += "B's result = " + B_res.format() + "\n\n";
+            accumulated_output_info += "Результат объекта B = " + B_res.format() + "\n\n";
 
             // output the details
             document.ECC.details.value = accumulated_output_info;
@@ -142,8 +142,10 @@
         <P align="center">
             <INPUT type="button" class="btn btn-danger-outline" value="Произвести обмен ключами" onClick="do_DH()">
         <HR>
-        Details:<br>
-        <textarea name="details" id="details" rows="25" cols="90"></textarea>
+        <fieldset class="form-group">
+            <label for="details">Детали</label>
+            <textarea class="form-control" name="details" id="details" rows="15" cols="100"></textarea>
+        </fieldset>
     </FORM>
 </div>
 </body>

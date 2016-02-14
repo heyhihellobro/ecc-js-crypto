@@ -102,7 +102,7 @@
             // get the chosen value of r
             var r = parseInt(document.ECC.send_r.value);
 
-            accumulated_output_info += "Encoding " + P.format() + " using r=" + r + "\n";
+            accumulated_output_info += "Шифрование " + P.format() + " используя значение r=" + r + "\n";
 
             var C1 = G.smul(r);
             accumulated_output_info += "C1 = r*G = " + C1.format() + "\n";
@@ -111,7 +111,7 @@
             var C2 = P.add(Temp);
             accumulated_output_info += "C2 = P + r*Q = " + C2.format() + "\n";
 
-            accumulated_output_info += "\nSending Message C1=" + C1.format() +
+            accumulated_output_info += "\nОтправляемое сообщение C1=" + C1.format() +
                     ", C2=" + C2.format() + "\n";
 
             // output the details
@@ -148,7 +148,7 @@
             // create the point
             var C2 = PointArray[temp_mul];
 
-            accumulated_output_info += "Decoding, C1 = " + C1.format() +
+            accumulated_output_info += "Дешифровка, C1 = " + C1.format() +
                     ", C2 =  " + C2.format() + "\n";
 
             // start the decryption process

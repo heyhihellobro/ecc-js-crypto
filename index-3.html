@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Шифрование - Дешифрование</title>
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/main.css">
+    <SCRIPT language="JavaScript" src="js/ecc.js"></SCRIPT>
+    <SCRIPT language="JavaScript">
+        // now try a digital signature
+        function do_sign() {
+            // generate GF(q) so we have inverse
+            var qtemp = new GFp(get_n());
+
+            accumulated_output_info = "";
+
+            // (use A_rand as the private key, so A_msg is the public key)
+            var hash = parseInt(document.ECC.hash.value) % get_n();
+            accumulated_output_info += "hash = " + hash + "\n";
+
+            var DSA_k;
+            var DSA_r;
+            var DSA_s;
+            var Temp_Pt;
+            // generate a valid signature
+            while (true) {
+                // generate a random #
+                DSA_k = gen_rand(get_n());
+                accumulated_output_info += "Проверка k=" + DSA_k + "\n";
+
+                // calculate (x1,y1)=k*G, then r=x1 mod n
+                var cur_G = get_G();
+                Temp_Pt = cur_G.smul(DSA_k);
+                DSA_r = Temp_Pt.x % get_n();
+                accumulated_output_info += "k*G = " + Temp_Pt.format() + ", r=" + DSA_r + "\n";
+
+                // if this is 0, we need to try again
+                if (DSA_r == 0) {
+                    accumulated_output_info += "r = 0, пробуем другое k\n";
+                    continue;
+                }
+
+                // calculate s = k^-1 (e + r*d) (mod n)
+                var k_inv = qtemp.div(1, DSA_k);
+                accumulated_output_info += "k^-1 = " + k_inv + "\n";
+                var e_rd = qtemp.add(hash, qtemp.mul(DSA_r, get_d()));
+                accumulated_output_info += "e + r*d=" + e_rd + "\n";
+                DSA_s = qtemp.mul(k_inv, e_rd);
+                accumulated_output_info += "s = k^-1 * (e+rd)=" + DSA_s + "\n";
+
+                // if this is 0, also need to try again
+                if (DSA_s == 0) {
+                    accumulated_output_info += "s = 0, пробуем другое значение\n";
+                    continue;
+                }
+                // have a valid r, s
+                break;
+            }
+            accumulated_output_info += "Hash = " + hash + ", Подпись: r = " + DSA_r + ", s = " + DSA_s + "\n";
+
+            // output the details
+            document.ECC.sign_r.value = DSA_r;
+            document.ECC.sign_s.value = DSA_s;
+            document.ECC.details.value = accumulated_output_info;
+        }
+
+        // validate the signature
+        function check_sign() {
+            // generate GF(q) so we have inverse
+            var qtemp = new GFp(get_n());
+
+            accumulated_output_info = "";
+
+            // get the hash data from the form
+            var hash = parseInt(document.ECC.hash.value) % get_n();
+            var DSA_r = parseInt(document.ECC.sign_r.value);
+            var DSA_s = parseInt(document.ECC.sign_s.value);
+
+            accumulated_output_info += "Проверка подписи\nhash e = " + hash + ", r=" + DSA_r +
+                    ", s=" + DSA_s + "\n";
+
+            // w = s^-1
+            var DSA_w = qtemp.div(1, DSA_s);
+            accumulated_output_info += "Проверка подписи\nw = s^-1 = " + DSA_w + "\n";
+
+            // u1 = hash*w (mod n), u2=r*w (mod n)
+            var DSA_u1 = qtemp.mul(hash, DSA_w);
+            accumulated_output_info += "u1 = e*w (mod n) = " + DSA_u1 + "\n";
+            var DSA_u2 = qtemp.mul(DSA_r, DSA_w);
+            accumulated_output_info += "u2 = r*w (mod n) = " + DSA_u2 + "\n";
+
+            // calculate (x1,y1) = u1*G + u2*Q (Q=public key)
+            accumulated_output_info += "Считаем u1*G\n";
+            var cur_G = get_G();
+            var t1 = cur_G.smul(DSA_u1);
+            accumulated_output_info += "u1*G = " + DSA_u1 + "*G = " + t1.format() + "\n";
+            accumulated_output_info += "Считаем u2*Q\n";
+            var cur_Q = get_Q();
+            var t2 = cur_Q.smul(DSA_u2);
+            accumulated_output_info += "u2*Q = " + DSA_u2 + "*Q=" + t2.format() + "\n";
+            var Temp_Pt = t1.add(t2);
+            accumulated_output_info += "(x1,y1)=" + Temp_Pt.format() + "\n";
+            var sig_check = Temp_Pt.x % get_n();
+            accumulated_output_info += "x1 mod n=" + sig_check + "\n";
+
+            // check if r = x1 mod n
+            var res_str;
+            if (DSA_r == sig_check) {
+                res_str = "Подпись валидная!";
+            }
+            else {
+                res_str = "Данная подпись неправильная!";
+            }
+
+            // note the result
+            accumulated_output_info += res_str + "\n";
+            document.ECC.details.value = accumulated_output_info;
+
+            // announce results
+            window.alert(res_str);
+        }
+    </SCRIPT>
+</head>
+
+
+<BODY>
+
+
+<nav class="navbar navbar-dark bg-primary">
+    <a class="navbar-brand" href="index.html">ECC Криптография</a>
+
+    <ul class="nav navbar-nav">
+        <li class="nav-item active">
+            <a class="nav-link" href="index.html">Главная <span class="sr-only">(current)</span></a>
+        </li>
+        <li class="nav-item ">
+            <a class="nav-link" href="index-1.html">Шифрование/Дешифрование</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="index-2.html">Обмен ключами</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="index-3.html">Электронная подпись</a>
+        </li>
+    </ul>
+
+</nav>
+
+
+<section class="header-section">
+    <div class="container">
+        <div class="row">
+            <div class="header-title">
+                <h1>Электронная подпись</h1>
+            </div>
+        </div>
+
+    </div>
+</section>
+
+<div class="col-md-5 col-md-offset-3">
+    <FORM name="ECC">
+        <TABLE>
+            <TR>
+                <TD>
+                    <INPUT type="radio" name="choose_curve" checked>Эллиптические кривые над конечными полями(p)<P>
+                    <br>Учитывая простое число р, то эллиптические кривые modulo (по модулю) р, которые мы используем,
+                    имеют вид: <b><I>y<SUP>2</SUP> = x<SUP>3</SUP> + ax + b</I></b>.
+                    <P>
+                        Предопределенные данные для подсчетов (координаты кривой и ключи):<BR><br>
+                        <b>
+                            <SCRIPT language="JavaScript">
+                                print_ECC_GFp();
+                            </SCRIPT>
+                        </b>
+                </TD>
+                <TD>
+                <TD>
+                    <INPUT type="radio" name="choose_curve">Curve over GF(2<SUP>m</SUP>)<P>
+                    Given a field GF(2<SUP>m</SUP>) and a irreducable polynomial, the curve is
+                    of the form: <I>y<SUP>2</SUP> + xy = x<SUP>3</SUP> + ax<SUP>2</SUP> + b</I>.
+                    <P>
+                        The curve and key information used for this page is:<BR>
+                        <SCRIPT language="JavaScript">
+                            // display the GF(2^m) curve
+                            print_ECC_GF2m();
+                        </SCRIPT>
+                </TD>
+            </TR>
+        </TABLE>
+
+        <hr>
+        <h3>Инструкции</h3>
+
+        Типичным примером использования эллиптических систем (и с открытым ключом систем в целом) является подписывание
+        документов, чтобы другие могли проверить личность автора и что документ не был изменен.
+        <br>
+        <br>
+
+
+        <P>
+            Для того, чтобы подписать документ нужно проделать следующие действия:
+        <UL>
+            <LI>Посчитать <I>e</I> равная hash докуменат, используя hash функции (такие как SHA-1)
+            <LI>Выбрать случайное значение <I>k</I>
+            <LI>Посчитать <I>(x,y) = k*G</I> и затем <I>r = x mod n</I>,
+                где <I>G</I> это сгенерированная точка для эллиптической кривой и <I>n</I> порядок кривой
+            <LI>Если <I>r=0</I>, нужно выбрать другое значение <I>k</I>
+            <LI>Посчитать <I>s = k<SUP>-1</SUP>(e + rd)</I> используя приватное значение <I>d</I>
+            <LI>Если <I>s=0</I>, нужно выбрать другое значение <I>k</I>
+            <LI>Таким образом, подпись это пара значений <I>(r, s)</I>
+        </UL>
+        <P>
+            Проверка подписи:
+        <UL>
+            <LI>Проверяем, <I>r</I> и <I>s</I> находятся в пределах 1..(n-1). Если нет, то подпись неправильная
+            <LI>Считаем hash документа <I>e</I> используя алгоритм описанный выше
+            <LI>Считаем <I>w = s<SUP>-1</SUP> (</I>mod <I>n)</I>
+            <LI>Считаем <I>U<SUB>1</SUB> = e*w (</I>mod <I>n)</I> и
+                <I>U<SUB>2</SUB> = r*w (</I>mod <I>n)</I>
+            <LI>Считаем <I>(x,y) = U<SUB>1</SUB> + U<SUB>2</SUB></I>
+            <LI>Подпись правильная, если <I>r = x (</I>mod <I>n)</I>, в любом другом случае она неправильная
+        </UL>
+        <br>
+        Hash: <INPUT type="text" name="hash" size="45">
+        <INPUT type="button" class="btn btn-danger-outline" value="Посчитать значения" onClick="do_sign()">
+        <br>
+        <br>
+        <P>
+            r = <INPUT type="text" name="sign_r" size=5>,
+            s= <INPUT type="text" name="sign_s" size=5>
+        <P>
+            <INPUT type="button" class="btn btn-success-outline" value="Проверить подпись" onClick="check_sign()">
+        <HR>
+        <fieldset class="form-group">
+            <label for="details">Детали</label>
+            <textarea class="form-control" name="details" id="details" rows="15" cols="100"></textarea>
+        </fieldset>
+    </FORM>
+</div>
+
+</body>
+</html>
