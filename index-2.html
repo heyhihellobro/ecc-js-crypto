@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Шифрование - Дешифрование</title>
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/main.css">
+    <SCRIPT language="JavaScript" src="js/ecc.js"></SCRIPT>
+    <SCRIPT language="JavaScript">
+        // external script contains the generic ECC code
+
+        // pick random numbers for Diffie-hellman
+        function gen_rand_DH() {
+            // which curve are we using?
+            if (document.ECC.choose_curve[0].checked) {
+                // using GF(p)
+                document.ECC.A_rand.value = gen_rand(ECC_GFp_n);
+                document.ECC.B_rand.value = gen_rand(ECC_GFp_n);
+            }
+            else {
+                // using GF(2^m)
+                document.ECC.A_rand.value = gen_rand(ECC_GF2m_n);
+                document.ECC.B_rand.value = gen_rand(ECC_GF2m_n);
+            }
+        }
+
+        // Do elliptic curve Diffie-Hellman
+        function do_DH() {
+            var cur_G = get_G();
+
+            accumulated_output_info = "";
+
+            // which curve are we using?
+            var A_rand = parseInt(document.ECC.A_rand.value);
+            accumulated_output_info += "A's secret number = " + A_rand + "\n";
+            var A_msg = cur_G.smul(A_rand);
+            accumulated_output_info += "A sends " + A_msg.format() + "\n\n";
+
+            var B_rand = parseInt(document.ECC.B_rand.value);
+            accumulated_output_info += "B's secret number = " + B_rand + "\n";
+            var B_msg = cur_G.smul(B_rand);
+            accumulated_output_info += "B sends " + B_msg.format() + "\n\n";
+
+            // do they get the same result?
+            accumulated_output_info += "A now calculates " + A_rand + "*" + B_msg.format() + "\n";
+            var A_res = B_msg.smul(A_rand);
+            accumulated_output_info += "A's result = " + A_res.format() + "\n\n";
+
+            accumulated_output_info += "B now calculates " + B_rand + "*" + A_msg.format() + "\n";
+            var B_res = A_msg.smul(B_rand);
+            accumulated_output_info += "B's result = " + B_res.format() + "\n\n";
+
+            // output the details
+            document.ECC.details.value = accumulated_output_info;
+        }
+    </SCRIPT>
+</head>
+
+
+<BODY onLoad="update_points()">
+
+
+<nav class="navbar navbar-dark bg-primary">
+    <a class="navbar-brand" href="index.html">ECC Криптография</a>
+
+    <ul class="nav navbar-nav">
+        <li class="nav-item active">
+            <a class="nav-link" href="index.html">Главная <span class="sr-only">(current)</span></a>
+        </li>
+        <li class="nav-item ">
+            <a class="nav-link" href="index-1.html">Шифрование/Дешифрование</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="index-2.html">Обмен ключами</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="index-3.html">Электронная подпись</a>
+        </li>
+    </ul>
+
+</nav>
+
+
+<section class="header-section">
+    <div class="container">
+        <div class="row">
+            <div class="header-title">
+                <h1>Обмен ключами</h1>
+            </div>
+        </div>
+
+    </div>
+</section>
+
+<div class="col-md-6 col-md-offset-3">
+
+    <FORM name="ECC">
+        <TABLE>
+            <TR>
+                <TD>
+                    <INPUT type="radio" name="choose_curve" checked>Эллиптические кривые над конечными полями(p)<P>
+                    <br>Учитывая простое число р, то эллиптические кривые modulo (по модулю) р, которые мы используем, имеют вид: <b><I>y<SUP>2</SUP> = x<SUP>3</SUP> + ax + b</I></b>.
+                    <P>
+                    Предопределенные данные для подсчетов (координаты кривой и ключи):<BR><br>
+                    <b>
+                        <SCRIPT language="JavaScript">
+                            print_ECC_GFp();
+                        </SCRIPT>
+                    </b>
+                </TD>
+                <TD>
+                    <INPUT type="radio" name="choose_curve">Curve over GF(2<SUP>m</SUP>)<P>
+                    Given a field GF(2<SUP>m</SUP>) and a irreducable polynomial, the curve is
+                    of the form: <I>y<SUP>2</SUP> + xy = x<SUP>3</SUP> + ax<SUP>2</SUP> + b</I>.
+                    <P>
+                        The curve and key information used for this page is:<BR>
+                        <SCRIPT language="JavaScript">
+                            // display the GF(2^m) curve
+                            print_ECC_GF2m();
+                        </SCRIPT>
+                </TD>
+            </TR>
+        </TABLE>
+        <hr>
+        <h4>Инструкции</h4>
+        Обычное использование криптографии на эллиптических кривых является создание общего секретного ключа для использования в секретных ключевых системах. Протокол Диффи-Хеллмана может быть применен к эллиптическим кривым следующим образом:
+        <UL>
+            <LI>Объект A генерирует <I>r<sub>A</sub></I>
+            <LI>Объект А считает <I>P<sub>A</sub> = r<sub>A</sub>*e<SUB>1</SUB></I> и отправляет результаты объекту Б.
+            <LI>Объект Б генерирует секретный ключ <I>r<sub>B</sub></I>
+            <LI>Объект Б считает <I>P<sub>B</sub> = r<sub>B</sub>*e<SUB>1</SUB></I> и отправляет результат объекту А.
+            <LI>Объект А получает <I>P<sub>B</sub></I> и считает <I>P = r<sub>A</sub>*P<sub>B</sub></I>
+            <LI>Объект Б получает <I>P<sub>A</sub></I> и считает <I>P = r<sub>B</sub>*P<sub>A</sub></I>
+
+        </UL>
+        Случайно значение объекта А: <INPUT type="text" name="A_rand" size=5><BR>
+        Случайно значение объекта Б: <INPUT type="text" name="B_rand" size=5>
+        <INPUT type="button" class="btn btn-primary-outline" value="Сгенерировать случайные значения" onClick="gen_rand_DH()">
+        <br>
+        <br>
+        <br>
+        <P align="center">
+            <INPUT type="button" class="btn btn-danger-outline" value="Произвести обмен ключами" onClick="do_DH()">
+        <HR>
+        Details:<br>
+        <textarea name="details" id="details" rows="25" cols="90"></textarea>
+    </FORM>
+</div>
+</body>
+</html>

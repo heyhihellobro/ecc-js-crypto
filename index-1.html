@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Шифрование - Дешифрование</title>
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/main.css">
+    <SCRIPT language="JavaScript" src="js/ecc.js"></SCRIPT>
+    <SCRIPT language="JavaScript">
+
+        var PointArray = new Array();
+
+        // mini object for i and i*G (point)
+        // comparison function for sorting
+        function pt_compare(a, b) {
+            // check for different x values
+            if (PointArray[a].x < PointArray[b].x)
+                return -1;
+            if (PointArray[a].x > PointArray[b].x)
+                return 1;
+
+            // x values are equal, check y's
+            if (PointArray[a].y < PointArray[b].y)
+                return -1;
+            if (PointArray[a].y > PointArray[b].y)
+                return 1;
+
+            // x, y both equal
+            return 0;
+        }
+
+        // update the list of points in the select box
+        function update_points() {
+            var G = get_G();
+            var n = get_n();
+            var i;
+            var temp_option;
+            var point_list = new Array();
+
+
+            for (i = 1; i < n; i++) {
+                // create the point
+                PointArray[i] = G.smul(i);
+
+                // save the index for sorting
+                point_list.push(i);
+            }
+
+            // sort them by x, then y
+            point_list.sort(pt_compare);
+
+            // erase the existing options
+            document.ECC.encrypt_msg.options.length = 0;
+            document.ECC.C1.options.length = 0;
+            document.ECC.C2.options.length = 0;
+
+//   accumulated_output_info = "";
+
+            // add them to the list
+            for (i = 0; i < point_list.length; i++) {
+                var idx = point_list[i];
+
+                // add this to the list
+                temp_option = new Option(PointArray[idx].format(),
+                        idx, false, false);
+                document.ECC.encrypt_msg.options[i] = temp_option;
+
+                // and to the C1 part of the encrypted message
+                temp_option = new Option(PointArray[idx].format(),
+                        idx, false, false);
+                document.ECC.C1.options[i] = temp_option;
+
+                // and to the C2 part of the encrypted message
+                temp_option = new Option(PointArray[idx].format(),
+                        idx, false, false);
+                document.ECC.C2.options[i] = temp_option;
+
+//      document.ECC.encrypt_msg.options[i] =
+//            new Option( PointArray[idx].format(),
+//            idx, false, false );
+            }
+        }
+
+        // encrypt the given point
+        function encrypt() {
+            accumulated_output_info = "";
+
+            var G = get_G();
+            var Q = get_Q();
+
+// send a message
+            // get the i for i*G so we can calculate the point they want to send
+            var P_mul = parseInt(document.ECC.encrypt_msg.value);
+            // create the point
+            var P = PointArray[P_mul];
+
+            // erase details of computations
+//   accumulated_output_info = "*** P_mul=" + document.ECC.encrypt_msg.value
+//         + ", Point=" + P.format() + "\n";
+            accumulated_output_info = "";
+
+            // get the chosen value of r
+            var r = parseInt(document.ECC.send_r.value);
+
+            accumulated_output_info += "Encoding " + P.format() + " using r=" + r + "\n";
+
+            var C1 = G.smul(r);
+            accumulated_output_info += "C1 = r*G = " + C1.format() + "\n";
+
+            var Temp = Q.smul(r);
+            var C2 = P.add(Temp);
+            accumulated_output_info += "C2 = P + r*Q = " + C2.format() + "\n";
+
+            accumulated_output_info += "\nSending Message C1=" + C1.format() +
+                    ", C2=" + C2.format() + "\n";
+
+            // output the details
+            document.ECC.details.value = accumulated_output_info;
+
+            var C1_text = C1.format();
+            var C2_text = C2.format();
+            // display the resulting message
+            for (i = 0; i < document.ECC.C1.options.length; i++) {
+                // is this the index corresponding to C1?
+                if (C1_text == document.ECC.C1.options[i].text)
+                    document.ECC.C1.selectedIndex = i;
+
+                // is this the index corresponding to C2?
+                if (C2_text == document.ECC.C2.options[i].text)
+                    document.ECC.C2.selectedIndex = i;
+            }
+        }
+
+        // decrypt the message
+        function decrypt() {
+            accumulated_output_info = "";
+
+            var G = get_G();
+            var Q = get_Q();
+
+            // get the i for i*G so we can calculate the point C1
+            var temp_mul = parseInt(document.ECC.C1.value);
+            // create the point
+            var C1 = PointArray[temp_mul];
+
+            // get the i for i*G so we can calculate the point C2
+            temp_mul = parseInt(document.ECC.C2.value);
+            // create the point
+            var C2 = PointArray[temp_mul];
+
+            accumulated_output_info += "Decoding, C1 = " + C1.format() +
+                    ", C2 =  " + C2.format() + "\n";
+
+            // start the decryption process
+            var B1 = C1.smul(get_d());
+            accumulated_output_info += "d*C1 = " + B1.format() + "\n";
+
+            var B2 = B1.invert();
+
+            var P2 = C2.add(B2);
+            accumulated_output_info += "C2 - d*C1 = " + P2.format() + "\n";
+
+            // output the details
+            document.ECC.details.value = accumulated_output_info;
+        }
+    </SCRIPT>
+</head>
+
+
+<BODY onLoad="update_points()">
+
+
+<nav class="navbar navbar-dark bg-primary">
+    <a class="navbar-brand" href="index.html">ECC Криптография</a>
+
+    <ul class="nav navbar-nav">
+        <li class="nav-item active">
+            <a class="nav-link" href="index.html">Главная <span class="sr-only">(current)</span></a>
+        </li>
+        <li class="nav-item ">
+            <a class="nav-link" href="index-1.html">Шифрование/Дешифрование</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="index-2.html">Обмен ключами</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="index-3.html">Электронная подпись</a>
+        </li>
+    </ul>
+
+</nav>
+
+
+<section class="header-section">
+    <div class="container">
+        <div class="row">
+            <div class="header-title">
+                <h1>Шифрование и дешифрование</h1>
+            </div>
+        </div>
+
+    </div>
+</section>
+
+<div class="col-md-6 col-md-offset-3">
+    <FORM name="ECC">
+        <TABLE>
+            <TR>
+                <TD>
+                    <INPUT type="radio" name="choose_curve" onClick="update_points();" checked> Эллиптические кривые над
+                    конечными полями (p)
+                    <br>
+                    <br>
+                    <P>
+                        Учитывая простое число р, то эллиптические кривые modulo (по модулю) р, которые мы используем,
+                        имеют вид:
+                        <b><I>y<SUP>2</SUP> = x<SUP>3</SUP> + ax + b</I></b>.
+                    <P>
+                        Предопределенные данные для подсчетов (координаты кривой и ключи):<BR><BR>
+                        <b>
+                            <SCRIPT language="JavaScript">
+                                // display the GF(p) curve
+                                print_ECC_GFp();
+                            </SCRIPT>
+                        </b>
+                </TD>
+                <TD>
+                    <INPUT type="radio" name="choose_curve" onClick="update_points();">Curve over GF(2<SUP>m</SUP>)<P>
+                    Given a field GF(2<SUP>m</SUP>) and a irreducable polynomial, the curve is
+                    of the form: <I>y<SUP>2</SUP> + xy = x<SUP>3</SUP> + ax<SUP>2</SUP> + b</I>.
+                    <P>
+                        The curve and key information used for this page is:<BR>
+                        <SCRIPT language="JavaScript">
+                            // display the GF(2^m) curve
+                            print_ECC_GF2m();
+                        </SCRIPT>
+                </TD>
+            </TR>
+        </TABLE>
+        <hr>
+        <h3>Инструкции</h3>
+        <P>Выбераем точку, соответствующую сообщению, которое нужно отправить. Этот конкретный подход использует
+            эллиптические кривые основнные на методе ElGamal шифрования.
+        <UL>
+            <LI>Для того, чтобы зашифровать сообщение отправитель выбирает случайное секретное число <I>r</I>.
+                Затем, отправитель берет Public Key (E, e<SUB>1</SUB>, e<SUB>2</SUB>),
+                сообщение P и подсчитывает
+                <I>C<SUB>1</SUB>=r*e<SUB>1</SUB></I> и <I>C<SUB>2</SUB>=P+r*e<SUB>2</SUB></I>,
+                и потом отправляет <I>C<SUB>1</SUB></I> и <I>C<SUB>2</SUB></I>
+                как сообщение.
+            <LI>
+                Для того, чтобы расшифровать сообщение, достаточно посчитать
+                <I>C<SUB>2</SUB>-d*C<SUB>1</SUB> = P+r*(d*e<SUB>1</SUB>) - d*(r*e<SUB>1</SUB>)</I>
+                и получить начальное значение P.
+        </UL>
+
+        Сообщение:
+        <SELECT name="encrypt_msg">
+            <OPTION value="2,9">(2,9)</OPTION>
+        </SELECT>
+
+        Случайное число <I>r</I> выбранное отправителем: <INPUT type="text" name="send_r" value="2" size=5>
+        <INPUT type="button" class="btn btn-primary-outline" value="Сгенерировать r"
+               onClick="document.ECC.send_r.value=gen_rand(get_n());">
+        <BR>
+        <P>
+            Значения:
+            C1:
+            <SELECT name="C1">
+                <OPTION value="2,9">(2,9)</OPTION>
+            </SELECT>
+            , C2:
+            <SELECT name="C2">
+                <OPTION value="2,9">(2,9)</OPTION>
+            </SELECT>
+            <BR>
+            <BR>
+            <BR>
+        <p align="center">
+            <INPUT type="button" class="btn btn-success-outline" value="Зашифровать" onClick="encrypt()">
+            <INPUT type="button" class="btn btn-danger-outline" value="Дешифровать" onClick="decrypt()">
+        </p>
+        <P>
+        <HR>
+
+
+        <fieldset class="form-group">
+            <label for="details">Детали</label>
+            <textarea class="form-control" name="details" id="details" rows="15" cols="100"></textarea>
+        </fieldset>
+    </FORM>
+</div>
+<p>
+</body>
+</html>
